@@ -26,8 +26,15 @@ func (e *Emulator) linefeed() {
 func (e *Emulator) index() {
 	x, y := e.scr.CursorPosition()
 	scroll := e.scr.ScrollRegion()
-	// XXX: Handle scrollback whenever we add it.
 	if y == scroll.Max.Y-1 && x >= scroll.Min.X && x < scroll.Max.X {
+		// Capture scrollback: main screen, full-width, top-of-screen only
+		if e.scrollback != nil && e.scr == &e.scrs[0] &&
+			scroll.Min.Y == 0 && scroll.Min.X == 0 && scroll.Max.X == e.scr.Width() {
+			e.pushScrollback(scroll.Min.Y)
+			if e.cb.Scrollback != nil {
+				e.cb.Scrollback(e.scrollback.Line(e.scrollback.Len() - 1))
+			}
+		}
 		e.scr.ScrollUp(1)
 	} else if y < scroll.Max.Y-1 || !uv.Pos(x, y).In(scroll) {
 		e.scr.moveCursor(0, 1)

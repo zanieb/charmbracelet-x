@@ -67,6 +67,9 @@ type Emulator struct {
 	gl, gr  int
 	gsingle int // temporarily select GL or GR
 
+	// scrollback is the scrollback ring buffer for the main screen.
+	scrollback *Scrollback
+
 	// Indicates if the terminal is closed.
 	closed bool
 
@@ -110,6 +113,31 @@ func NewEmulator(w, h int) *Emulator {
 	t.defaultCur = color.White
 
 	return t
+}
+
+// Scrollback returns the scrollback buffer, or nil if scrollback is disabled.
+func (e *Emulator) Scrollback() *Scrollback {
+	return e.scrollback
+}
+
+// SetScrollbackSize sets the scrollback buffer capacity. A size of 0 disables
+// scrollback. This replaces any existing scrollback buffer.
+func (e *Emulator) SetScrollbackSize(n int) {
+	if n <= 0 {
+		e.scrollback = nil
+		return
+	}
+	e.scrollback = NewScrollback(n)
+}
+
+// pushScrollback captures the given row from the current screen and pushes it
+// into the scrollback buffer.
+func (e *Emulator) pushScrollback(row int) {
+	if e.scrollback == nil {
+		return
+	}
+	line := e.scr.buf.Lines[row]
+	e.scrollback.Push(line)
 }
 
 // SetLogger sets the terminal's logger.

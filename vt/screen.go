@@ -41,7 +41,7 @@ func (s *Screen) Bounds() uv.Rectangle {
 
 // Touched returns touched lines in the screen buffer.
 func (s *Screen) Touched() []*uv.LineData {
-	return s.buf.Touched
+	return nil
 }
 
 // CellAt returns the cell at the given x, y position.

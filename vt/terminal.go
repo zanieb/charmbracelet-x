@@ -33,6 +33,7 @@ type Terminal interface {
 	RegisterSosHandler(handler SosHandler)
 	Render() string
 	Resize(width int, height int)
+	Scrollback() *Scrollback
 	SendKey(k uv.KeyEvent)
 	SendKeys(keys ...uv.KeyEvent)
 	SendMouse(m Mouse)
@@ -47,6 +48,8 @@ type Terminal interface {
 	SetForegroundColor(c color.Color)
 	SetIndexedColor(i int, c color.Color)
 	SetLogger(l Logger)
+	SetScrollbackSize(n int)
+	StateDump() string
 	String() string
 	Touched() []*uv.LineData
 	Width() int

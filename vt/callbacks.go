@@ -60,4 +60,9 @@ type Callbacks struct {
 	// DisableMode callback. When set, this function is called when a mode is
 	// disabled.
 	DisableMode func(mode ansi.Mode)
+
+	// Scrollback callback. When set, this function is called when a line
+	// scrolls into the scrollback buffer. The line is a clone of the
+	// scrolled-off line.
+	Scrollback func(line uv.Line)
 }

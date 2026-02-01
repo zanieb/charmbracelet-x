@@ -36,4 +36,7 @@ func (e *Emulator) fullReset() {
 	e.grapheme = e.grapheme[:0]
 	e.lastChar = 0
 	e.lastState = parser.GroundState
+	if e.scrollback != nil {
+		e.scrollback.Reset()
+	}
 }
