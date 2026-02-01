@@ -111,3 +111,8 @@ func (e *Emulator) isModeSet(mode ansi.Mode) bool {
 	m, ok := e.modes[mode]
 	return ok && m.IsSet()
 }
+
+// IsModeSet returns whether a given terminal mode is currently enabled.
+func (e *Emulator) IsModeSet(mode ansi.Mode) bool {
+	return e.isModeSet(mode)
+}
