@@ -45,7 +45,7 @@ var (
 )
 
 func FlushConsoleInputBuffer(console Handle) (err error) {
-	r1, _, e1 := syscall.Syscall(procFlushConsoleInputBuffer.Addr(), 1, uintptr(console), 0, 0)
+	r1, _, e1 := syscall.SyscallN(procFlushConsoleInputBuffer.Addr(), uintptr(console))
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -53,7 +53,7 @@ func FlushConsoleInputBuffer(console Handle) (err error) {
 }
 
 func GetNumberOfConsoleInputEvents(console Handle, numevents *uint32) (err error) {
-	r1, _, e1 := syscall.Syscall(procGetNumberOfConsoleInputEvents.Addr(), 2, uintptr(console), uintptr(unsafe.Pointer(numevents)), 0)
+	r1, _, e1 := syscall.SyscallN(procGetNumberOfConsoleInputEvents.Addr(), uintptr(console), uintptr(unsafe.Pointer(numevents)))
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -61,7 +61,7 @@ func GetNumberOfConsoleInputEvents(console Handle, numevents *uint32) (err error
 }
 
 func PeekConsoleInput(console Handle, buf *InputRecord, toread uint32, read *uint32) (err error) {
-	r1, _, e1 := syscall.Syscall6(procPeekConsoleInputW.Addr(), 4, uintptr(console), uintptr(unsafe.Pointer(buf)), uintptr(toread), uintptr(unsafe.Pointer(read)), 0, 0)
+	r1, _, e1 := syscall.SyscallN(procPeekConsoleInputW.Addr(), uintptr(console), uintptr(unsafe.Pointer(buf)), uintptr(toread), uintptr(unsafe.Pointer(read)))
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -69,7 +69,7 @@ func PeekConsoleInput(console Handle, buf *InputRecord, toread uint32, read *uin
 }
 
 func ReadConsoleInput(console Handle, buf *InputRecord, toread uint32, read *uint32) (err error) {
-	r1, _, e1 := syscall.Syscall6(procReadConsoleInputW.Addr(), 4, uintptr(console), uintptr(unsafe.Pointer(buf)), uintptr(toread), uintptr(unsafe.Pointer(read)), 0, 0)
+	r1, _, e1 := syscall.SyscallN(procReadConsoleInputW.Addr(), uintptr(console), uintptr(unsafe.Pointer(buf)), uintptr(toread), uintptr(unsafe.Pointer(read)))
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
