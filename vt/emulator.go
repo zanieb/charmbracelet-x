@@ -70,6 +70,11 @@ type Emulator struct {
 	// scrollback is the scrollback ring buffer for the main screen.
 	scrollback *Scrollback
 
+	// kittyKbdStack tracks the kitty keyboard protocol progressive
+	// enhancement flags stack. Entries are pushed with CSI > flags u and
+	// popped with CSI < n u. An empty stack means the protocol is disabled.
+	kittyKbdStack []int
+
 	// Indicates if the terminal is closed.
 	closed bool
 
@@ -465,6 +470,15 @@ func (e *Emulator) SetIndexedColor(i int, c color.Color) {
 // resetTabStops resets the terminal tab stops to the default set.
 func (e *Emulator) resetTabStops() {
 	e.tabstops = uv.DefaultTabStops(e.Width())
+}
+
+// KittyKeyboardFlags returns the current top of the kitty keyboard protocol
+// stack, or 0 if the stack is empty (protocol disabled).
+func (e *Emulator) KittyKeyboardFlags() int {
+	if len(e.kittyKbdStack) == 0 {
+		return 0
+	}
+	return e.kittyKbdStack[len(e.kittyKbdStack)-1]
 }
 
 func (e *Emulator) logf(format string, v ...any) {

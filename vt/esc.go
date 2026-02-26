@@ -39,4 +39,5 @@ func (e *Emulator) fullReset() {
 	if e.scrollback != nil {
 		e.scrollback.Reset()
 	}
+	e.kittyKbdStack = e.kittyKbdStack[:0]
 }

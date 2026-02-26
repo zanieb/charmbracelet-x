@@ -2,6 +2,7 @@ package vt
 
 import (
 	"io"
+	"strconv"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
@@ -915,6 +916,57 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			e.scr.SaveCursor()
 		}
 
+		return true
+	})
+
+	// Kitty Keyboard Protocol — Push flags: CSI > flags u
+	e.RegisterCsiHandler(ansi.Command('>', 0, 'u'), func(params ansi.Params) bool {
+		flags, _, _ := params.Param(0, 0)
+		e.kittyKbdStack = append(e.kittyKbdStack, flags)
+		return true
+	})
+
+	// Kitty Keyboard Protocol — Pop flags: CSI < n u
+	e.RegisterCsiHandler(ansi.Command('<', 0, 'u'), func(params ansi.Params) bool {
+		n, _, _ := params.Param(0, 1)
+		if n <= 0 {
+			n = 1
+		}
+		if n >= len(e.kittyKbdStack) {
+			e.kittyKbdStack = e.kittyKbdStack[:0]
+		} else {
+			e.kittyKbdStack = e.kittyKbdStack[:len(e.kittyKbdStack)-n]
+		}
+		return true
+	})
+
+	// Kitty Keyboard Protocol — Query flags: CSI ? u
+	e.RegisterCsiHandler(ansi.Command('?', 0, 'u'), func(params ansi.Params) bool {
+		flags := 0
+		if len(e.kittyKbdStack) > 0 {
+			flags = e.kittyKbdStack[len(e.kittyKbdStack)-1]
+		}
+		// Respond with CSI ? flags u
+		_, _ = io.WriteString(e.pw, "\x1b[?"+strconv.Itoa(flags)+"u")
+		return true
+	})
+
+	// Kitty Keyboard Protocol — Set flags: CSI = flags ; mode u
+	e.RegisterCsiHandler(ansi.Command('=', 0, 'u'), func(params ansi.Params) bool {
+		flags, _, _ := params.Param(0, 0)
+		mode, _, _ := params.Param(1, 1)
+		if len(e.kittyKbdStack) == 0 {
+			e.kittyKbdStack = append(e.kittyKbdStack, 0)
+		}
+		top := len(e.kittyKbdStack) - 1
+		switch mode {
+		case 1: // Set given flags, unset all others
+			e.kittyKbdStack[top] = flags
+		case 2: // Set given flags, keep existing
+			e.kittyKbdStack[top] |= flags
+		case 3: // Unset given flags, keep existing
+			e.kittyKbdStack[top] &^= flags
+		}
 		return true
 	})
 }

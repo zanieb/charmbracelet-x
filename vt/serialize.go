@@ -3,6 +3,8 @@ package vt
 import (
 	"fmt"
 	"strings"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // StateDump returns ANSI sequences that reproduce current screen contents,
@@ -32,7 +34,65 @@ func (e *Emulator) StateDump() string {
 	// Cursor style
 	writeCursorStyle(&buf, e.scr.cur.Style, e.scr.cur.Steady)
 
+	// Restore terminal modes that affect client-side input/output behavior.
+	// Without this, a reconnecting client's terminal will be in default mode
+	// while the remote application expects modes like bracketed paste or
+	// mouse tracking to be enabled, causing input corruption.
+	writeModes(&buf, e.modes)
+
+	// Restore kitty keyboard protocol state. The protocol uses a stack
+	// (CSI > flags u), not a DEC mode. If the remote application pushed
+	// flags, we need to re-push them on the client terminal so keystrokes
+	// are encoded correctly.
+	if flags := e.KittyKeyboardFlags(); flags > 0 {
+		buf.WriteString(ansi.PushKittyKeyboard(flags))
+	}
+
 	return buf.String()
+}
+
+// modesToRestore lists terminal modes that should be restored on reconnect.
+// These are modes that affect how the client terminal processes input or output
+// and whose state must match what the remote application expects.
+//
+// We exclude modes that are purely internal to the emulator (origin, margins)
+// or that are handled separately (cursor visibility, alt screen).
+var modesToRestore = map[ansi.Mode]ansi.ModeSetting{
+	// Input modes — if the remote app enabled these, the client terminal
+	// must also have them enabled or keystrokes will be misencoded.
+	ansi.ModeCursorKeys:   ansi.ModeReset, // ?1  — cursor key mode (normal vs application)
+	ansi.ModeNumericKeypad: ansi.ModeReset, // ?66 — numeric keypad mode
+
+	// Mouse tracking — if enabled, the client terminal must know.
+	ansi.ModeMouseX10:         ansi.ModeReset, // ?9
+	ansi.ModeMouseNormal:      ansi.ModeReset, // ?1000
+	ansi.ModeMouseHighlight:   ansi.ModeReset, // ?1001
+	ansi.ModeMouseButtonEvent: ansi.ModeReset, // ?1002
+	ansi.ModeMouseAnyEvent:    ansi.ModeReset, // ?1003
+	ansi.ModeMouseExtSgr:      ansi.ModeReset, // ?1006
+
+	// Focus events — if enabled, client terminal reports focus in/out.
+	ansi.ModeFocusEvent: ansi.ModeReset, // ?1004
+
+	// Bracketed paste — affects how pasted text is sent.
+	ansi.ModeBracketedPaste: ansi.ModeReset, // ?2004
+}
+
+// writeModes emits DECSET sequences for modes that differ from their defaults.
+func writeModes(buf *strings.Builder, modes ansi.Modes) {
+	for mode, defaultSetting := range modesToRestore {
+		current, ok := modes[mode]
+		if !ok {
+			continue
+		}
+		if current == defaultSetting {
+			continue
+		}
+		// Mode is non-default — emit the appropriate set/reset sequence.
+		if current.IsSet() {
+			buf.WriteString(ansi.SetMode(mode))
+		}
+	}
 }
 
 // writeCursorStyle emits the DECSCUSR sequence for cursor shape.
