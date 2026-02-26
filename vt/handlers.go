@@ -2,7 +2,6 @@ package vt
 
 import (
 	"io"
-	"strconv"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
@@ -941,15 +940,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 	})
 
 	// Kitty Keyboard Protocol — Query flags: CSI ? u
-	e.RegisterCsiHandler(ansi.Command('?', 0, 'u'), func(params ansi.Params) bool {
-		flags := 0
-		if len(e.kittyKbdStack) > 0 {
-			flags = e.kittyKbdStack[len(e.kittyKbdStack)-1]
-		}
-		// Respond with CSI ? flags u
-		_, _ = io.WriteString(e.pw, "\x1b[?"+strconv.Itoa(flags)+"u")
-		return true
-	})
+	// NOTE: We intentionally do NOT handle the query here. The query
+	// must pass through to the real client terminal, which will respond
+	// via the input path. If we intercept it, the application never
+	// receives the terminal's response and hangs waiting for it.
 
 	// Kitty Keyboard Protocol — Set flags: CSI = flags ; mode u
 	e.RegisterCsiHandler(ansi.Command('=', 0, 'u'), func(params ansi.Params) bool {
